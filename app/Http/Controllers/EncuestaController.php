@@ -1,0 +1,116 @@
+<?php
+
+namespace App\Http\Controllers;
+use App\Models\Encuesta;
+use App\Models\Opcion;
+
+use Illuminate\Http\Request;
+
+class EncuestaController extends Controller
+{
+    /**
+     * Display a listing of the resource.
+     */
+    public function index()
+    {
+        $encuestas = Encuesta::all();
+        return view('encuestas.index', compact('encuestas'));
+    }
+
+    /**
+     * Show the form for creating a new resource.
+     */
+    public function create()
+    {
+        return view('encuestas.create');
+    }
+
+    /**
+     * Store a newly created resource in storage.
+     */
+    public function store(Request $request)
+    {
+        $request->validate([
+            'titulo' => 'required|string|max:255',
+            'descripcion' => 'nullable|string',
+            'opciones' => 'required|array|min:2',
+            'opciones.*' => 'required|string|max:255',
+        ]);
+    
+        // Guardar la encuesta
+        $encuesta = Encuesta::create([
+            'titulo' => $request->titulo,
+            'descripcion' => $request->descripcion,
+        ]);
+    
+        // Guardar las opciones asociadas a la encuesta
+        foreach ($request->opciones as $opcion) {
+            $encuesta->opciones()->create(['opcion' => $opcion]);
+        }
+    
+        return redirect()->route('encuestas.index')
+                         ->with('success', 'Encuesta creada con éxito');
+    }
+    
+    /**
+     * Display the specified resource.
+     */
+    public function show(string $id)
+    {
+        $encuesta = Encuesta::with('opciones')->findOrFail($id);
+        return view('encuestas.show', compact('encuesta'));
+    }
+    
+
+    /**
+     * Show the form for editing the specified resource.
+     */
+    public function edit(string $id)
+    {
+        $encuesta = Encuesta::findOrFail($id);
+        return view('encuestas.edit', compact('encuesta'));
+    }
+    
+    /**
+     * Update the specified resource in storage.
+     */
+    public function update(Request $request, string $id)
+    {
+        $request->validate([
+            'titulo' => 'required|string|max:255',
+            'descripcion' => 'nullable|string',
+            'opciones' => 'required|array|min:2',
+            'opciones.*' => 'required|string|max:255',
+        ]);
+    
+        $encuesta = Encuesta::findOrFail($id);
+    
+        // Actualizar los datos de la encuesta
+        $encuesta->update([
+            'titulo' => $request->titulo,
+            'descripcion' => $request->descripcion,
+        ]);
+    
+        // Eliminar las opciones antiguas
+        $encuesta->opciones()->delete();
+    
+        // Guardar las nuevas opciones
+        foreach ($request->opciones as $opcion) {
+            $encuesta->opciones()->create(['opcion' => $opcion]);
+        }
+    
+        return redirect()->route('encuestas.index')->with('success', 'Encuesta actualizada con éxito');
+    }    
+    
+    /**
+     * Remove the specified resource from storage.
+     */
+    public function destroy(string $id)
+    {
+        $encuesta = Encuesta::find($id);
+        $encuesta->delete();
+    
+        return redirect()->route('encuestas.index')
+                         ->with('success', 'Encuesta eliminada con éxito');
+    }
+}
